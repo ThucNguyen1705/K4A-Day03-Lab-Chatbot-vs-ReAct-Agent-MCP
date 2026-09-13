@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import json
+import time
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 
@@ -46,6 +47,31 @@ def _warn_fallback(provider_name: str, detail: str) -> None:
     print("🚨 Bài nộp chỉ chạy Mock sẽ bị trừ điểm Tiêu chí 2 & 3. Hãy kiểm tra lại .env!")
     print("🚨 ============================================================================= 🚨")
     print("")
+
+
+def _parse_retry_delay(message: str) -> Optional[float]:
+    """Đọc khoảng thời gian API yêu cầu chờ lại từ thông báo lỗi 429"""
+    for pattern in (r"retryDelay'?\s*:\s*'?(\d+(?:\.\d+)?)s", r"retry in (\d+(?:\.\d+)?)s"):
+        m = re.search(pattern, message)
+        if m:
+            return float(m.group(1))
+    return None
+
+
+def _clean_thought(text: str) -> str:
+    """Bỏ phần mở đầu khuôn mẫu và ký tự markdown trong thought summary của model"""
+    if not text:
+        return ""
+    lines = []
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("#").strip().strip("*").strip()
+        if not line:
+            continue
+        # Bỏ câu dẫn khuôn mẫu kiểu "Here's my summary, as though I'm thinking these thoughts:"
+        if re.match(r"^(here'?s|this is) my (summary|thought)", line, re.I):
+            continue
+        lines.append(line)
+    return " ".join(lines)[:600].strip()
 
 
 def _last_user_query(history: Optional[List[Dict[str, Any]]], fallback: str) -> str:
@@ -285,9 +311,16 @@ class GeminiProvider(BaseLLMProvider):
             elif role == "assistant_text":
                 contents.append(types.Content(role="model", parts=[types.Part(text=m.get("content", ""))]))
             elif role == "assistant_tool_call":
-                contents.append(types.Content(role="model", parts=[
-                    types.Part.from_function_call(name=m.get("tool_name", ""), args=m.get("arguments") or {})
-                ]))
+                part = types.Part.from_function_call(name=m.get("tool_name", ""), args=m.get("arguments") or {})
+                # ⚠️ Gemini 3.x BẮT BUỘC gửi kèm thought_signature của chính lượt function call đó
+                #    khi phát lại lịch sử. Thiếu chữ ký -> API trả 400 INVALID_ARGUMENT.
+                signature = m.get("signature")
+                if signature:
+                    try:
+                        part.thought_signature = signature
+                    except Exception:
+                        pass
+                contents.append(types.Content(role="model", parts=[part]))
             elif role == "tool_result":
                 payload = m.get("content")
                 if not isinstance(payload, dict):
@@ -297,17 +330,59 @@ class GeminiProvider(BaseLLMProvider):
                 ]))
         return contents
 
+    def _generate_with_retry(self, client, contents, config, max_attempts: int = 5):
+        """Gọi Gemini API, tự chờ và thử lại khi dính giới hạn tốc độ (HTTP 429).
+
+        Free tier của Gemini giới hạn khoảng 5 request/phút cho mỗi model, trong khi
+        một lượt chạy `--all` cần hơn chục request. Không có retry thì Agent sẽ rơi
+        về Mock giữa chừng và bài nộp mất điểm nghiệm thu.
+        """
+        delay = 5.0
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return client.models.generate_content(
+                    model=self.model_name, contents=contents, config=config
+                )
+            except Exception as e:
+                message = str(e)
+                is_rate_limited = "429" in message or "RESOURCE_EXHAUSTED" in message
+                if not is_rate_limited or attempt == max_attempts:
+                    raise
+                wait = (_parse_retry_delay(message) or delay) + 1.5
+                print(f"⏳ [RATE LIMIT] Gemini free tier đang giới hạn tốc độ. "
+                      f"Chờ {wait:.0f}s rồi thử lại (lần {attempt}/{max_attempts - 1})...")
+                time.sleep(wait)
+                delay = min(delay * 2, 60)
+
     @staticmethod
-    def _extract_thought(response) -> str:
-        """Lấy phần văn bản suy luận THẬT mà model xuất ra kèm function_call"""
+    def _parse_response(response):
+        """Bóc tách 1 lượt phản hồi Gemini thành 4 phần.
+
+        Trả về (reasoning, answer, function_call, thought_signature):
+          - reasoning : văn bản suy luận model tự xuất ra (part.thought = True) -> dùng làm Thought THẬT
+          - answer    : văn bản trả lời cho người dùng
+          - function_call / thought_signature : lượt gọi tool đầu tiên và chữ ký kèm theo
+        """
+        reasoning, answer, call, signature = "", "", None, None  # noqa: E501
         try:
-            for part in response.candidates[0].content.parts:
-                text = getattr(part, "text", None)
-                if text and text.strip():
-                    return text.strip()
+            parts = response.candidates[0].content.parts or []
         except Exception:
-            pass
-        return ""
+            parts = []
+
+        for part in parts:
+            text = getattr(part, "text", None)
+            if text and text.strip():
+                if getattr(part, "thought", False):
+                    reasoning = f"{reasoning} {text.strip()}".strip()
+                else:
+                    answer = f"{answer} {text.strip()}".strip()
+
+            fc = getattr(part, "function_call", None)
+            if fc is not None and call is None:
+                call = fc
+                signature = getattr(part, "thought_signature", None)
+
+        return _clean_thought(reasoning), answer, call, signature
 
     def generate_with_tools(self,
                             prompt: str,
@@ -337,32 +412,36 @@ class GeminiProvider(BaseLLMProvider):
             config = types.GenerateContentConfig(
                 system_instruction=system_prompt if system_prompt else None,
                 tools=[{"function_declarations": function_declarations}] if function_declarations else None,
+                # Tắt AFC: vòng lặp ReAct do src/app.py điều phối, SDK không được tự chạy tool
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                # Yêu cầu model trả kèm phần suy luận -> Thought trong trace là THẬT,
+                # không phải chuỗi f-string do code tự ghép
+                thinking_config=types.ThinkingConfig(include_thoughts=True),
                 temperature=0.2
             )
 
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=self._build_contents(prompt, history, types),
-                config=config
+            response = self._generate_with_retry(
+                client, self._build_contents(prompt, history, types), config
             )
 
-            reasoning = self._extract_thought(response)
+            reasoning, answer, call, signature = self._parse_response(response)
 
-            if response.function_calls:
-                call = response.function_calls[0]
+            if call is not None:
                 args = dict(call.args) if getattr(call, "args", None) else {}
                 return {
                     "type": "tool_call",
                     "tool_name": call.name,
                     "arguments": args,
                     "call_id": getattr(call, "id", None) or f"call_{len(history or [])}",
-                    "thought": reasoning or f"Gọi công cụ '{call.name}' với tham số: {json.dumps(args, ensure_ascii=False)}"
+                    "thought_signature": signature,
+                    "thought": (reasoning or answer
+                                or f"Gọi công cụ '{call.name}' với tham số: {json.dumps(args, ensure_ascii=False)}")
                 }
 
             return {
                 "type": "text",
-                "content": reasoning or (response.text or ""),
-                "thought": "Đã đủ dữ liệu để kết luận, không cần gọi thêm công cụ."
+                "content": answer or (getattr(response, "text", "") or ""),
+                "thought": reasoning or "Đã đủ dữ liệu để kết luận, không cần gọi thêm công cụ."
             }
 
         except Exception as e:

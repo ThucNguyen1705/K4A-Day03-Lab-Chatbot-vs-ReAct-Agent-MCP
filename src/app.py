@@ -215,7 +215,8 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPRecruitmentServer)
 
             # --- NẠP NGƯỢC vào lịch sử rồi QUAY LẠI ĐẦU VÒNG (không break) ---
             history.append({"role": "assistant_tool_call", "tool_name": tool_name,
-                            "arguments": arguments, "call_id": call_id, "thought": thought})
+                            "arguments": arguments, "call_id": call_id, "thought": thought,
+                            "signature": llm_response.get("thought_signature")})
             history.append({"role": "tool_result", "tool_name": tool_name,
                             "content": obs_data, "call_id": call_id})
             continue
