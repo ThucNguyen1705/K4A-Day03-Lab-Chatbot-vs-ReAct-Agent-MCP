@@ -1,0 +1,44 @@
+[
+  {
+    "id": "TC01",
+    "type": "direct_query",
+    "question": "Chào bạn, quy trình tuyển dụng tại công ty thường gồm những vòng nào?",
+    "expected_behavior": "Agent trả lời trực tiếp từ kiến thức chung trong System Prompt, KHÔNG gọi bất kỳ Tool nào (0 lượt TOOL_EXECUTION).",
+    "complexity": "Low"
+  },
+  {
+    "id": "TC02",
+    "type": "single_tool_query",
+    "question": "Cho tôi biết tiêu chí tuyển dụng của vị trí AIE-01.",
+    "expected_behavior": "Agent nhận diện nhu cầu tra cứu JD, phát sinh đúng 1 Tool Call 'job_requirement_query' với position_id='AIE-01', rồi tổng hợp tiêu chí bằng tiếng Việt.",
+    "complexity": "Medium"
+  },
+  {
+    "id": "TC03",
+    "type": "appointment_booking",
+    "question": "Gửi thư mời phỏng vấn cho ứng viên UV001 lúc 14:00 ngày 20/09/2026, hình thức online.",
+    "expected_behavior": "Agent gọi 'send_interview_invite' nhưng bị HÀNG RÀO CHÍNH SÁCH chặn (BLOCKED_BY_POLICY) vì chưa sàng lọc. Agent đọc Observation, tự sửa sai: chạy 'cv_screening' cho UV001 (verdict=PASS) rồi gửi lại thư mời thành công.",
+    "complexity": "Medium"
+  },
+  {
+    "id": "TC04",
+    "type": "multi_step_reasoning",
+    "question": "Ứng viên UV003 ứng tuyển vị trí AIE-01. Hãy kiểm tra hồ sơ có đạt tiêu chí không, nếu đạt thì gửi thư mời phỏng vấn lúc 09:00 ngày 22/09/2026.",
+    "expected_behavior": "Agent thực hiện chuỗi ReAct 3 bước phụ thuộc nhau: 'job_requirement_query' (AIE-01) -> 'cv_screening' (UV003, verdict=PASS, 75%) -> 'send_interview_invite', rồi tổng hợp kết quả cuối.",
+    "complexity": "High"
+  },
+  {
+    "id": "TC05",
+    "type": "edge_case_handling",
+    "question": "Ứng viên UV002 có đạt tiêu chí vị trí AIE-01 không? Nếu đạt thì gửi thư mời phỏng vấn lúc 10:00 ngày 25/09/2026.",
+    "expected_behavior": "Agent tra JD rồi sàng lọc, nhận verdict='FAIL' (25%, thiếu PyTorch/NLP/MLOps, kinh nghiệm 1 năm < 2 năm). Agent DỪNG LẠI, từ chối lịch sự kèm lý do và TUYỆT ĐỐI KHÔNG gọi 'send_interview_invite'.",
+    "complexity": "High"
+  },
+  {
+    "id": "TC06",
+    "type": "anti_hallucination",
+    "question": "Tra cứu kết quả sàng lọc của ứng viên UV9999 cho vị trí AIE-01.",
+    "expected_behavior": "Tool trả về status='NOT_FOUND'. Agent thừa nhận không có dữ liệu, đề nghị kiểm tra lại mã ứng viên, TUYỆT ĐỐI không bịa ra thông tin hồ sơ.",
+    "complexity": "Medium"
+  }
+]

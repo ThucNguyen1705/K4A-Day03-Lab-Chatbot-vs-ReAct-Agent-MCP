@@ -1,29 +1,378 @@
 [
   {
     "step": 1,
-    "query": "Chào bạn, bạn có thể giới thiệu quy chế học vụ cơ bản của Đại học VinUni không?",
+    "query": "Chào bạn, quy trình tuyển dụng tại công ty thường gồm những vòng nào?",
     "action_type": "FINAL_ANSWER",
-    "thought": "Câu hỏi chung về quy chế học vụ, trả lời trực tiếp không cần gọi Tool.",
-    "output": "[Mock Agent Response]: Xin chào! Quy chế học vụ VinUni yêu cầu sinh viên tích lũy tối thiểu 120 tín chỉ và duy trì GPA trên 2.0 để tốt nghiệp.",
-    "latency_ms": 2845.93
+    "thought": "Đây là câu hỏi kiến thức chung về quy trình, trả lời trực tiếp mà không cần gọi công cụ.",
+    "output": "Quy trình tuyển dụng tại công ty gồm 4 bước: sàng lọc hồ sơ theo tiêu chí vị trí, phỏng vấn chuyên môn, phỏng vấn với quản lý tuyển dụng, và thương lượng offer. Thời gian trung bình từ lúc nộp hồ sơ đến khi có kết quả là 2-3 tuần.",
+    "latency_ms": 1.0
   },
   {
     "step": 1,
-    "query": "Hãy tra cứu thông tin học vụ của sinh viên SV2026001.",
+    "query": "Cho tôi biết tiêu chí tuyển dụng của vị trí AIE-01.",
     "action_type": "TOOL_EXECUTION",
-    "tool_name": "academic_query",
+    "thought": "Người dùng hỏi tiêu chí tuyển dụng, cần tra cứu JD của vị trí này từ hệ thống ATS.",
+    "tool_name": "job_requirement_query",
     "arguments": {
-      "student_id": "SV2026001"
+      "position_id": "AIE-01"
     },
-    "observation": {},
-    "latency_ms": 799.12
+    "observation": {
+      "status": "SUCCESS",
+      "position_id": "AIE-01",
+      "data": {
+        "title": "AI Engineer",
+        "department": "Khối Công nghệ - Trung tâm AI",
+        "min_years_exp": 2,
+        "required_skills": [
+          "Python",
+          "PyTorch",
+          "NLP",
+          "MLOps"
+        ],
+        "preferred_skills": [
+          "Docker",
+          "Kubernetes",
+          "LangChain"
+        ],
+        "education": "Tốt nghiệp Đại học chuyên ngành CNTT / Khoa học máy tính hoặc tương đương",
+        "salary_range": "25.000.000 - 40.000.000 VND",
+        "headcount": 3,
+        "hiring_manager": "Trần Quốc Huy"
+      }
+    },
+    "mcp_request_id": 1,
+    "latency_ms": 0.14
   },
   {
     "step": 2,
-    "query": "Hãy tra cứu thông tin học vụ của sinh viên SV2026001.",
+    "query": "Cho tôi biết tiêu chí tuyển dụng của vị trí AIE-01.",
     "action_type": "FINAL_ANSWER",
-    "thought": "Tổng hợp kết quả từ MCP Server thành công.",
-    "output": "Chưa thể trả lời chi tiết do chưa nhận được dữ liệu từ MCP Server (hãy hoàn thành TODO 2.1).",
-    "latency_ms": 10.0
+    "thought": "Đã nhận đủ tiêu chí vị trí từ MCP Server, tổng hợp lại cho người dùng.",
+    "output": "Vị trí AI Engineer (AIE-01) thuộc Khối Công nghệ - Trung tâm AI yêu cầu tối thiểu 2 năm kinh nghiệm. Kỹ năng bắt buộc: Python, PyTorch, NLP, MLOps. Ưu tiên thêm: Docker, Kubernetes, LangChain. Học vấn: Tốt nghiệp Đại học chuyên ngành CNTT / Khoa học máy tính hoặc tương đương. Dải lương 25.000.000 - 40.000.000 VND, cần tuyển 3 người, quản lý tuyển dụng: Trần Quốc Huy.",
+    "latency_ms": 0.05
+  },
+  {
+    "step": 1,
+    "query": "Gửi thư mời phỏng vấn cho ứng viên UV001 lúc 14:00 ngày 20/09/2026, hình thức online.",
+    "action_type": "POLICY_BLOCK",
+    "thought": "Người dùng yêu cầu gửi thư mời phỏng vấn cho ứng viên này.",
+    "tool_name": "send_interview_invite",
+    "arguments": {
+      "candidate_id": "UV001",
+      "interview_datetime": "14:00 20/09/2026",
+      "mode": "online"
+    },
+    "observation": {
+      "status": "BLOCKED_BY_POLICY",
+      "candidate_id": "UV001",
+      "message": "Từ chối gửi thư mời cho UV001: chưa có kết quả sàng lọc verdict='PASS' trong phiên làm việc này. Hãy chạy cv_screening cho ứng viên UV001 với vị trí AIE-01 trước."
+    },
+    "latency_ms": 0.04
+  },
+  {
+    "step": 2,
+    "query": "Gửi thư mời phỏng vấn cho ứng viên UV001 lúc 14:00 ngày 20/09/2026, hình thức online.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Đã có tiêu chí vị trí, bước tiếp theo là đối chiếu hồ sơ ứng viên với tiêu chí đó.",
+    "tool_name": "cv_screening",
+    "arguments": {
+      "candidate_id": "UV001",
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "candidate_id": "UV001",
+      "position_id": "AIE-01",
+      "candidate_name": "Nguyễn Hoàng Nam",
+      "position_title": "AI Engineer",
+      "verdict": "PASS",
+      "match_score": 100,
+      "years_exp": 3,
+      "min_years_exp": 2,
+      "matched_skills": [
+        "Python",
+        "PyTorch",
+        "NLP",
+        "MLOps"
+      ],
+      "missing_skills": [],
+      "reason": "Đáp ứng 100% kỹ năng bắt buộc và đủ số năm kinh nghiệm yêu cầu"
+    },
+    "mcp_request_id": 2,
+    "latency_ms": 0.04
+  },
+  {
+    "step": 3,
+    "query": "Gửi thư mời phỏng vấn cho ứng viên UV001 lúc 14:00 ngày 20/09/2026, hình thức online.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Kết quả sàng lọc là PASS nên luật nghiệp vụ cho phép phát hành thư mời phỏng vấn.",
+    "tool_name": "send_interview_invite",
+    "arguments": {
+      "candidate_id": "UV001",
+      "interview_datetime": "14:00 20/09/2026",
+      "mode": "online"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "invite_id": "INV-UV001-01",
+      "candidate_id": "UV001",
+      "candidate_name": "Nguyễn Hoàng Nam",
+      "email_sent_to": "nam.nh@email.com",
+      "interview_datetime": "14:00 20/09/2026",
+      "interviewer": "Trần Quốc Huy",
+      "mode": "online",
+      "message": "Đã gửi thư mời phỏng vấn INV-UV001-01 tới Nguyễn Hoàng Nam (nam.nh@email.com) lúc 14:00 20/09/2026, hình thức online, người phỏng vấn: Trần Quốc Huy."
+    },
+    "mcp_request_id": 3,
+    "latency_ms": 0.04
+  },
+  {
+    "step": 4,
+    "query": "Gửi thư mời phỏng vấn cho ứng viên UV001 lúc 14:00 ngày 20/09/2026, hình thức online.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "Thư mời đã phát hành thành công, không cần gọi thêm công cụ nào.",
+    "output": "Nguyễn Hoàng Nam đạt 100% tiêu chí AI Engineer. Đã gửi thư mời INV-UV001-01 tới nam.nh@email.com cho buổi phỏng vấn online lúc 14:00 20/09/2026, người phỏng vấn: Trần Quốc Huy.",
+    "latency_ms": 0.05
+  },
+  {
+    "step": 1,
+    "query": "Ứng viên UV003 ứng tuyển vị trí AIE-01. Hãy kiểm tra hồ sơ có đạt tiêu chí không, nếu đạt thì gửi thư mời phỏng vấn lúc 09:00 ngày 22/09/2026.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Muốn biết ứng viên có đạt hay không thì phải biết tiêu chí của vị trí trước.",
+    "tool_name": "job_requirement_query",
+    "arguments": {
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "position_id": "AIE-01",
+      "data": {
+        "title": "AI Engineer",
+        "department": "Khối Công nghệ - Trung tâm AI",
+        "min_years_exp": 2,
+        "required_skills": [
+          "Python",
+          "PyTorch",
+          "NLP",
+          "MLOps"
+        ],
+        "preferred_skills": [
+          "Docker",
+          "Kubernetes",
+          "LangChain"
+        ],
+        "education": "Tốt nghiệp Đại học chuyên ngành CNTT / Khoa học máy tính hoặc tương đương",
+        "salary_range": "25.000.000 - 40.000.000 VND",
+        "headcount": 3,
+        "hiring_manager": "Trần Quốc Huy"
+      }
+    },
+    "mcp_request_id": 4,
+    "latency_ms": 0.04
+  },
+  {
+    "step": 2,
+    "query": "Ứng viên UV003 ứng tuyển vị trí AIE-01. Hãy kiểm tra hồ sơ có đạt tiêu chí không, nếu đạt thì gửi thư mời phỏng vấn lúc 09:00 ngày 22/09/2026.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Đã có tiêu chí vị trí, bước tiếp theo là đối chiếu hồ sơ ứng viên với tiêu chí đó.",
+    "tool_name": "cv_screening",
+    "arguments": {
+      "candidate_id": "UV003",
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "candidate_id": "UV003",
+      "position_id": "AIE-01",
+      "candidate_name": "Trần Minh Khoa",
+      "position_title": "AI Engineer",
+      "verdict": "PASS",
+      "match_score": 75,
+      "years_exp": 2,
+      "min_years_exp": 2,
+      "matched_skills": [
+        "Python",
+        "PyTorch",
+        "NLP"
+      ],
+      "missing_skills": [
+        "MLOps"
+      ],
+      "reason": "Đáp ứng 75% kỹ năng bắt buộc và đủ số năm kinh nghiệm yêu cầu"
+    },
+    "mcp_request_id": 5,
+    "latency_ms": 0.04
+  },
+  {
+    "step": 3,
+    "query": "Ứng viên UV003 ứng tuyển vị trí AIE-01. Hãy kiểm tra hồ sơ có đạt tiêu chí không, nếu đạt thì gửi thư mời phỏng vấn lúc 09:00 ngày 22/09/2026.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Kết quả sàng lọc là PASS nên luật nghiệp vụ cho phép phát hành thư mời phỏng vấn.",
+    "tool_name": "send_interview_invite",
+    "arguments": {
+      "candidate_id": "UV003",
+      "interview_datetime": "09:00 22/09/2026",
+      "mode": "online"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "invite_id": "INV-UV003-02",
+      "candidate_id": "UV003",
+      "candidate_name": "Trần Minh Khoa",
+      "email_sent_to": "khoa.tm@email.com",
+      "interview_datetime": "09:00 22/09/2026",
+      "interviewer": "Trần Quốc Huy",
+      "mode": "online",
+      "message": "Đã gửi thư mời phỏng vấn INV-UV003-02 tới Trần Minh Khoa (khoa.tm@email.com) lúc 09:00 22/09/2026, hình thức online, người phỏng vấn: Trần Quốc Huy."
+    },
+    "mcp_request_id": 6,
+    "latency_ms": 0.04
+  },
+  {
+    "step": 4,
+    "query": "Ứng viên UV003 ứng tuyển vị trí AIE-01. Hãy kiểm tra hồ sơ có đạt tiêu chí không, nếu đạt thì gửi thư mời phỏng vấn lúc 09:00 ngày 22/09/2026.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "Thư mời đã phát hành thành công, không cần gọi thêm công cụ nào.",
+    "output": "Trần Minh Khoa đạt 75% tiêu chí AI Engineer. Đã gửi thư mời INV-UV003-02 tới khoa.tm@email.com cho buổi phỏng vấn online lúc 09:00 22/09/2026, người phỏng vấn: Trần Quốc Huy.",
+    "latency_ms": 0.04
+  },
+  {
+    "step": 1,
+    "query": "Ứng viên UV002 có đạt tiêu chí vị trí AIE-01 không? Nếu đạt thì gửi thư mời phỏng vấn lúc 10:00 ngày 25/09/2026.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Muốn biết ứng viên có đạt hay không thì phải biết tiêu chí của vị trí trước.",
+    "tool_name": "job_requirement_query",
+    "arguments": {
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "position_id": "AIE-01",
+      "data": {
+        "title": "AI Engineer",
+        "department": "Khối Công nghệ - Trung tâm AI",
+        "min_years_exp": 2,
+        "required_skills": [
+          "Python",
+          "PyTorch",
+          "NLP",
+          "MLOps"
+        ],
+        "preferred_skills": [
+          "Docker",
+          "Kubernetes",
+          "LangChain"
+        ],
+        "education": "Tốt nghiệp Đại học chuyên ngành CNTT / Khoa học máy tính hoặc tương đương",
+        "salary_range": "25.000.000 - 40.000.000 VND",
+        "headcount": 3,
+        "hiring_manager": "Trần Quốc Huy"
+      }
+    },
+    "mcp_request_id": 7,
+    "latency_ms": 0.03
+  },
+  {
+    "step": 2,
+    "query": "Ứng viên UV002 có đạt tiêu chí vị trí AIE-01 không? Nếu đạt thì gửi thư mời phỏng vấn lúc 10:00 ngày 25/09/2026.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Đã có tiêu chí vị trí, bước tiếp theo là đối chiếu hồ sơ ứng viên với tiêu chí đó.",
+    "tool_name": "cv_screening",
+    "arguments": {
+      "candidate_id": "UV002",
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "candidate_id": "UV002",
+      "position_id": "AIE-01",
+      "candidate_name": "Lê Thị Bình",
+      "position_title": "AI Engineer",
+      "verdict": "FAIL",
+      "match_score": 25,
+      "years_exp": 1,
+      "min_years_exp": 2,
+      "matched_skills": [
+        "Python"
+      ],
+      "missing_skills": [
+        "PyTorch",
+        "NLP",
+        "MLOps"
+      ],
+      "reason": "Kinh nghiệm 1 năm chưa đạt yêu cầu tối thiểu 2 năm; Mức độ khớp kỹ năng 25% chưa đạt ngưỡng 70% (thiếu: PyTorch, NLP, MLOps)"
+    },
+    "mcp_request_id": 8,
+    "latency_ms": 0.03
+  },
+  {
+    "step": 3,
+    "query": "Ứng viên UV002 có đạt tiêu chí vị trí AIE-01 không? Nếu đạt thì gửi thư mời phỏng vấn lúc 10:00 ngày 25/09/2026.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "Kết quả sàng lọc là FAIL. Luật nghiệp vụ cấm gửi thư mời trong trường hợp này.",
+    "output": "Ứng viên Lê Thị Bình (UV002) CHƯA đạt tiêu chí vị trí AI Engineer, mức độ phù hợp 25%. Lý do: Kinh nghiệm 1 năm chưa đạt yêu cầu tối thiểu 2 năm; Mức độ khớp kỹ năng 25% chưa đạt ngưỡng 70% (thiếu: PyTorch, NLP, MLOps). Vì vậy tôi chưa gửi thư mời phỏng vấn.",
+    "latency_ms": 0.04
+  },
+  {
+    "step": 1,
+    "query": "Tra cứu kết quả sàng lọc của ứng viên UV9999 cho vị trí AIE-01.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Muốn biết ứng viên có đạt hay không thì phải biết tiêu chí của vị trí trước.",
+    "tool_name": "job_requirement_query",
+    "arguments": {
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "SUCCESS",
+      "position_id": "AIE-01",
+      "data": {
+        "title": "AI Engineer",
+        "department": "Khối Công nghệ - Trung tâm AI",
+        "min_years_exp": 2,
+        "required_skills": [
+          "Python",
+          "PyTorch",
+          "NLP",
+          "MLOps"
+        ],
+        "preferred_skills": [
+          "Docker",
+          "Kubernetes",
+          "LangChain"
+        ],
+        "education": "Tốt nghiệp Đại học chuyên ngành CNTT / Khoa học máy tính hoặc tương đương",
+        "salary_range": "25.000.000 - 40.000.000 VND",
+        "headcount": 3,
+        "hiring_manager": "Trần Quốc Huy"
+      }
+    },
+    "mcp_request_id": 9,
+    "latency_ms": 0.03
+  },
+  {
+    "step": 2,
+    "query": "Tra cứu kết quả sàng lọc của ứng viên UV9999 cho vị trí AIE-01.",
+    "action_type": "TOOL_EXECUTION",
+    "thought": "Đã có tiêu chí vị trí, bước tiếp theo là đối chiếu hồ sơ ứng viên với tiêu chí đó.",
+    "tool_name": "cv_screening",
+    "arguments": {
+      "candidate_id": "UV9999",
+      "position_id": "AIE-01"
+    },
+    "observation": {
+      "status": "NOT_FOUND",
+      "candidate_id": "UV9999",
+      "message": "Không tìm thấy ứng viên có mã 'UV9999' trong hệ thống ATS."
+    },
+    "mcp_request_id": 10,
+    "latency_ms": 0.03
+  },
+  {
+    "step": 3,
+    "query": "Tra cứu kết quả sàng lọc của ứng viên UV9999 cho vị trí AIE-01.",
+    "action_type": "FINAL_ANSWER",
+    "thought": "Công cụ trả về NOT_FOUND. Theo quy tắc chống bịa đặt, phải thừa nhận không có dữ liệu.",
+    "output": "Không tìm thấy ứng viên có mã 'UV9999' trong hệ thống ATS. Anh/chị vui lòng kiểm tra lại mã, hoặc cung cấp thông tin khác để tôi tra cứu.",
+    "latency_ms": 0.04
   }
 ]
