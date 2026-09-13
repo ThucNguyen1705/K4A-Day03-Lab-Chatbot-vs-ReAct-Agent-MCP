@@ -49,8 +49,13 @@
 
 > ⚠️ **YÊU CẦU NGHIỆM THU:** Mở tệp `.env` điền `GEMINI_API_KEY` (hoặc `OPENAI_API_KEY`) để kết nối LLM thật trước khi thực thi `python src/app.py --all`.
 >
-> 🔴 **CHƯA HOÀN TẤT — đoạn trích dưới đây đang lấy từ lần chạy `MockOfflineProvider`.**
-> Sau khi điền API Key thật, chạy lại `python src/app.py --all` rồi **thay đoạn JSON bên dưới** bằng nội dung mới trong `docs/trace_waterfall.json`. Xác nhận terminal in ra `🔌 LLM Provider: GeminiProvider` và **không** xuất hiện khối `🚨 CẢNH BÁO NGHIỆM THU`.
+> 🟡 **ĐÃ CHẠY TRÊN GEMINI THẬT NHƯNG CHƯA SẠCH — cần chạy lại 1 lượt nữa.**
+>
+> Lượt chạy ngày 14/09/2026 với `GeminiProvider (gemini-3.6-flash)` hoàn tất 6/6 test case, nhưng **8 lượt gọi LLM cuối bị cạn quota** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, giới hạn **20 request/ngày**) nên tự động rơi về `MockOfflineProvider`. Vì vậy `docs/trace_waterfall.json` hiện là **hỗn hợp** Gemini thật + Mock.
+>
+> **Việc cần làm khi quota reset (00:00 giờ Thái Bình Dương):** chạy lại `python src/app.py --all`, xác nhận terminal in `🔌 LLM Provider: GeminiProvider` và **không** xuất hiện khối `🚨 CẢNH BÁO NGHIỆM THU` lần nào, rồi thay đoạn JSON bên dưới bằng nội dung mới.
+>
+> *Nếu quota 20 request/ngày vẫn không đủ:* đổi `LLM_MODEL` trong `.env` sang model có hạn mức cao hơn (ví dụ `gemini-2.5-flash-lite`), hoặc bật billing cho project.
 
 ### 2.1. TC04 — Chuỗi suy luận ReAct đa bước (3 Tool Call phụ thuộc nhau)
 
@@ -210,6 +215,9 @@ python src/mcp_server.py
 $env:LLM_PROVIDER="mock"; python src/app.py --all
 
 # B3. NGHIỆM THU - điền GEMINI_API_KEY vào .env rồi chạy lại bằng LLM thật
+#     Lưu ý: dùng python trong .venv (đã cài sẵn google-genai), và model phải là
+#     gemini-3.6-flash trở lên - gemini-2.5-flash đã ngừng cấp cho tài khoản mới.
+.\.venv\Scripts\Activate.ps1
 Remove-Item Env:LLM_PROVIDER -ErrorAction SilentlyContinue
 python src/app.py --all
 
